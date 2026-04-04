@@ -311,15 +311,10 @@ setup_date () {
 # Remarks:	Sets the default editor for all users to vim.basic.
 # Returns:	None.
 config_editor () {
-# local editor file folder user users
   # Check vim is installed.
   if ! which -s vim.basic; then
     return
   fi
-# editor="$(update-alternatives --display editor |
-#   grep "link currently points to" |
-#   sed "s/^.*link currently points to //"
-# )"
   # Back up symbolic link of original default editor.
   backup_file "/etc/alternatives/editor"
   # Make vim.basic the default editor.
@@ -338,20 +333,10 @@ revert_editor () {
   fi
   # Restore default editor.
   file="/etc/alternatives/editor"
-# if [ -f "${file}.org" ]; then
-#   mv -f "${file}.org" "${file}"
-# fi
   if [ -f "${file}.org" ]; then
     editor="$(ls -al "${file}.org" | sed -e "s/^.* //g")"
     update-alternatives --quiet --set editor "${editor}"
   fi
-# editor="$(update-alternatives --display editor |
-#   grep "link currently points to" |
-#   sed "s/^.*link currently points to //"
-# )"
-# if ! echo "${editor}" | grep --quiet "vim.tiny"; then
-#   update-alternatives --quiet --set editor "${editor}"
-# fi
 }
 
 ################################################################################
