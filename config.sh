@@ -157,19 +157,17 @@ cat << EOF | sed -e "s/^  //" > "${file}"
   alias iw-scan='iw dev wlan0 scan | grep -Ei "^BSS|freq:|signal:|SSID:" | grep -Eiv "HESSID:"'
   alias iwlist-scan='iwlist wlan0 scan | grep -Ei "Cell|Freq|Qual|SSID"'
 EOF
-  # Get local user accounts.
-  users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
-# # Copy skeleton files to root account.
   # Back up original .bashrc file of root account.
   backup_file "/root/.bashrc"
   # Copy skeleton files to root account.
   /bin/cp -a /etc/skel/.bash_aliases /root
   /bin/cp -a /etc/skel/.bashrc /root
   /bin/cp -a /etc/skel/.bashrc_aliases /root
+  # Get local user accounts.
+  users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Copy skeleton files to all user accounts.
-# # Do not double quote to allow globbing and word splitting.
-# for user in ${users}; do
-  for user in "${users}"; do
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     # Back up original .bashrc file of user account.
     backup_file "/home/${user}/.bashrc"
     # Copy skeleton files to user account.
@@ -194,7 +192,7 @@ EOF
 # Returns:	None.
 revert_bash () {
   local file user users
-  # Remove skeleton files.
+  # Remove skeleton files for root account.
   file="/etc/skel/.bash_aliases"
   if [ -f "${file}" ]; then
     rm -f "${file}"
@@ -219,10 +217,9 @@ revert_bash () {
   fi
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
-  # Remove skeleton files from all user accounts.
-# # Do not double quote to allow globbing and word splitting.
-# for user in ${users}; do
-  for user in "${users}"; do
+  # Remove skeleton files for all user accounts.
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     file="/home/${user}/.bash_aliases"
     if [ -f "${file}" ]; then
       rm -f "${file}"
@@ -315,7 +312,7 @@ setup_date () {
 # Returns:	None.
 config_editor () {
 # local editor file folder user users
-  # Check vim is present.
+  # Check vim is installed.
   if ! which -s vim.basic; then
     return
   fi
@@ -335,7 +332,7 @@ config_editor () {
 # Returns:	None.
 revert_editor () {
   local editor file
-  # Check vim is present.
+  # Check vim is installed.
   if ! which -s vim.basic; then
     return
   fi
@@ -376,6 +373,10 @@ config_sudo () {
   if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
+  # Check sudo is installed.
+  if ! which -s sudo; then
+    return
+  fi
   file="/etc/sudoers"
   # Back up original file if backup file is missing.
   backup_file "${file}"
@@ -389,16 +390,13 @@ config_sudo () {
     fi
   fi
   # Get local user accounts.
-# users="$(get_users)"
-# for user in ${users}; do
-  for user in "${users}"; do
+  users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     # Allow user account to use sudo.
     if ! grep --quiet "^sudo.*${user}" /etc/group; then
       usermod --append --groups sudo "${user}"
     fi
-# done
-# for user in ${users}; do
-# for user in "${users}"; do
     # Remove first time lecture about sudo.
     mkdir -p "/var/lib/sudo/lectured"
     file="/var/lib/sudo/lectured/${user}"
@@ -420,15 +418,19 @@ revert_sudo () {
   if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
+  # Check sudo is installed.
+  if ! which -s sudo; then
+    return
+  fi
   file="/etc/sudoers"
   # Restore original file.
   if [ -f "${file}.org" ]; then
     mv -f "${file}.org" "${file}"
   fi
   # Get local user accounts.
-# users="$(get_users)"
-# for user in ${users}; do
-  for user in "${users}"; do
+  users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     # Disallow user account to use sudo.
     file="/etc/group"
     if grep --quiet "^sudo.*${user}" "${file}"; then
@@ -436,9 +438,6 @@ revert_sudo () {
       sed -i -r "s/^(sudo:.*)${user},(.*)$/\1\2/" "${file}"
       sed -i -r "s/^(sudo:.*)${user}(.*)$/\1\2/"  "${file}"
     fi
-# done
-# for user in ${users}; do
-# for user in "${users}"; do
     # Restore first time lecture about sudo.
     file="/var/lib/sudo/lectured/${user}"
     if [ -f "${file}" ]; then
@@ -488,7 +487,7 @@ setup_vim () {
 # Returns:	None.
 config_vim () {
   local file folder user users
-  # Check vim is present.
+  # Check vim is installed.
   if ! which -s vim; then
     return
   fi
@@ -500,7 +499,8 @@ config_vim () {
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Add vim backup folder for all local users.
-  for user in "${users}"; do
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     folder="/home/${user}/.vim/backup"
     mkdir -p "${folder}"
     chown "${user}:${user}" "/home/${user}/.vim"
@@ -617,7 +617,7 @@ EOF
 # Returns:	None.
 revert_vim () {
   local file folder user users
-  # Check vim is present.
+  # Check vim is installed.
   if ! which -s vim; then
     return
   fi
@@ -636,13 +636,12 @@ revert_vim () {
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Remove vim backup folder for all local users.
-  for user in "${users}"; do
+  # Do not double quote to allow globbing and word splitting.
+  for user in ${users}; do
     folder="/home/${user}/.vim/backup"
     if [ -d "${folder}" ]; then
       rm -rf "${folder}"
     fi
-# done
-# for user in "${users}"; do
     folder="/home/${user}/.vim"
     # Check folder is empty.
     if ! [ "$(ls -A "${folder}")" ]; then
