@@ -315,8 +315,8 @@ config_editor () {
   if ! which -s vim.basic; then
     return
   fi
-  # Back up symbolic link of original default editor.
-  backup_file "/etc/alternatives/editor"
+# # Back up symbolic link of original default editor.
+# backup_file "/etc/alternatives/editor"
   # Make vim.basic the default editor.
   update-alternatives --quiet --set editor /usr/bin/vim.basic
 }
@@ -326,17 +326,18 @@ config_editor () {
 # Remarks:	Restores the default editor for all users.
 # Returns:	None.
 revert_editor () {
-  local editor file
+# local editor file
   # Check vim is installed.
   if ! which -s vim.basic; then
     return
   fi
   # Restore default editor.
-  file="/etc/alternatives/editor"
-  if [ -f "${file}.org" ]; then
-    editor="$(ls -al "${file}.org" | sed -e "s/^.* //g")"
-    update-alternatives --quiet --set editor "${editor}"
-  fi
+# file="/etc/alternatives/editor"
+# if [ -f "${file}.org" ]; then
+#   editor="$(ls -al "${file}.org" | sed -e "s/^.* //g")"
+#   update-alternatives --quiet --set editor "${editor}"
+# fi
+  update-alternatives --quiet --auto editor
 }
 
 ################################################################################
