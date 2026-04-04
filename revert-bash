@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Exit immediately for any failed (non-zero exit code) untested commands.
+set -e
+
+. ./common.sh
+. ./config.sh
+
+if test_root_privileges; then
+  revert_bash
+fi
+
