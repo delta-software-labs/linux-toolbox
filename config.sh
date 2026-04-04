@@ -323,7 +323,7 @@ config_editor () {
   # Back up symbolic link of original default editor.
   backup_file "/etc/alternatives/editor"
   # Make vim.basic the default editor.
-  update-alternatives --set editor /usr/bin/vim.basic
+  update-alternatives --quiet --set editor /usr/bin/vim.basic
 }
 
 # Function:	Undo configuration of the default editor.
@@ -343,14 +343,14 @@ revert_editor () {
 # fi
   if [ -f "${file}.org" ]; then
     editor="$(ls -al "${file}.org" | sed -e "s/^.* //g")"
-    update-alternatives --set editor "${editor}"
+    update-alternatives --quiet --set editor "${editor}"
   fi
 # editor="$(update-alternatives --display editor |
 #   grep "link currently points to" |
 #   sed "s/^.*link currently points to //"
 # )"
 # if ! echo "${editor}" | grep --quiet "vim.tiny"; then
-#   update-alternatives --set editor "${editor}"
+#   update-alternatives --quiet --set editor "${editor}"
 # fi
 }
 
