@@ -373,14 +373,14 @@ revert_editor () {
 config_sudo () {
   local file user users
   # Only do for Debian.
-  if ! grep --ignore-case --no-messages "Debian" "/etc/issue.net"; then
+  if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
   file="/etc/sudoers"
   # Back up original file if backup file is missing.
   backup_file "${file}"
   # Check root password has been set.
-  if ! grep -q "^root:\*:" "/etc/shadow"; then
+  if grep --quiet "^root:\*:" /etc/shadow; then
     echo "${YELLOW}:: Skipped making sudo ask for root password, due to no root password set.${RESET}"
   else
     # Make sudo ask for root password.
@@ -417,7 +417,7 @@ config_sudo () {
 revert_sudo () {
   local file user users
   # Only do for Debian.
-  if ! grep --ignore-case --no-messages "Debian" "/etc/issue.net"; then
+  if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
   file="/etc/sudoers"
@@ -459,7 +459,6 @@ revert_sudo () {
 # Returns:	None.
 setup_vim () {
   local action file line lines
-  # Check vim is available.
   action="$1"
   file="/etc/environment"
   lines="
@@ -600,14 +599,14 @@ EOF
   mkdir -p /etc/vim/ftplugin
   mkdir -p /etc/vim/indent
   mkdir -p /etc/vim/syntax
-  wget --directory-prefix /etc/vim/ftdetect https://github.com/PProvost/vim-ps1/raw/master/ftdetect/ps1.vim
-  wget --directory-prefix /etc/vim/ftdetect https://github.com/PProvost/vim-ps1/raw/master/ftdetect/ps1xml.vim
-  wget --directory-prefix /etc/vim/ftdetect https://github.com/PProvost/vim-ps1/raw/master/ftdetect/xml.vim
-  wget --directory-prefix /etc/vim/ftplugin https://github.com/PProvost/vim-ps1/raw/master/ftplugin/ps1.vim
-  wget --directory-prefix /etc/vim/ftplugin https://github.com/PProvost/vim-ps1/raw/master/ftplugin/ps1xml.vim
-  wget --directory-prefix /etc/vim/indent   https://github.com/PProvost/vim-ps1/raw/master/indent/ps1.vim
-  wget --directory-prefix /etc/vim/syntax   https://github.com/PProvost/vim-ps1/raw/master/syntax/ps1.vim
-  wget --directory-prefix /etc/vim/syntax   https://github.com/PProvost/vim-ps1/raw/master/syntax/ps1xml.vim
+  wget --directory-prefix /etc/vim/ftdetect --quiet https://github.com/PProvost/vim-ps1/raw/master/ftdetect/ps1.vim
+  wget --directory-prefix /etc/vim/ftdetect --quiet https://github.com/PProvost/vim-ps1/raw/master/ftdetect/ps1xml.vim
+  wget --directory-prefix /etc/vim/ftdetect --quiet https://github.com/PProvost/vim-ps1/raw/master/ftdetect/xml.vim
+  wget --directory-prefix /etc/vim/ftplugin --quiet https://github.com/PProvost/vim-ps1/raw/master/ftplugin/ps1.vim
+  wget --directory-prefix /etc/vim/ftplugin --quiet https://github.com/PProvost/vim-ps1/raw/master/ftplugin/ps1xml.vim
+  wget --directory-prefix /etc/vim/indent   --quiet https://github.com/PProvost/vim-ps1/raw/master/indent/ps1.vim
+  wget --directory-prefix /etc/vim/syntax   --quiet https://github.com/PProvost/vim-ps1/raw/master/syntax/ps1.vim
+  wget --directory-prefix /etc/vim/syntax   --quiet https://github.com/PProvost/vim-ps1/raw/master/syntax/ps1xml.vim
 }
 
 # Function:	Undo configuration of the vim editor.
