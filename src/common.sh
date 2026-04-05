@@ -73,6 +73,28 @@ remove_line () {
   fi
 }
 
+# Function:	Remove file if present.
+# Parameters:	The 1st parameter contains the file name.
+# Returns:	None.
+remove_file () {
+  local file
+  file="$1"
+  if [ -f "${file}" ]; then
+    rm -f "${file}"
+  fi
+}
+
+# Function:	Remove folder if present.
+# Parameters:	The 1st parameter contains the folder name.
+# Returns:	None.
+remove_folder () {
+  local folder
+  folder="$1"
+  if [ -d "${folder}" ]; then
+    rm -rf "${folder}"
+  fi
+}
+
 # Function:	Restore file from its backup if present.
 # Parameters:	The 1st parameter contains the file name.
 # Returns:	None.
@@ -80,7 +102,7 @@ revert_file () {
   local file
   file="$1"
   if [ -f "${file}.org" ]; then
-    mv -f "${file}.org" "${file}"
+    command cp -a "${file}.org" "${file}"
   fi
 }
 

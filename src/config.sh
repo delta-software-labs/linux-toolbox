@@ -193,48 +193,22 @@ EOF
 #		Disables ANSI color output.
 # Returns:	None.
 revert_bash () {
-  local file user users
-  # Remove skeleton files for root account.
-  file="/etc/skel/.bash_aliases"
-  if [ -f "${file}" ]; then
-    rm -f "${file}"
-  fi
-  file="/etc/skel/.bashrc_aliases"
-  if [ -f "${file}" ]; then
-    rm -f "${file}"
-  fi
-  # Remove skeleton files from root account.
-  file="/root/.bash_aliases"
-  if [ -f "${file}" ]; then
-    rm -f "${file}"
-  fi
-  file="/root/.bashrc_aliases"
-  if [ -f "${file}" ]; then
-    rm -f "${file}"
-  fi
-  # Restore original .bashrc file of root account.
-  file="/root/.bashrc"
-  if [ -f "${file}.org" ]; then
-    mv -f "${file}.org" "${file}"
-  fi
+  local user users
+  remove_file "/etc/skel/.bash_aliases"
+  remove_file "/etc/skel/.bashrc_aliases"
+  remove_file "/root/.bash_aliases"
+  remove_file "/root/.bashrc_aliases"
+  # Restore file from its backup if present.
+  revert_file "/root/.bashrc"
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Remove skeleton files for all user accounts.
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
-    file="/home/${user}/.bash_aliases"
-    if [ -f "${file}" ]; then
-      rm -f "${file}"
-    fi
-    file="/home/${user}/.bashrc_aliases"
-    if [ -f "${file}" ]; then
-      rm -f "${file}"
-    fi
-    # Restore original .bashrc file of user account.
-    file="/home/${user}/.bashrc"
-    if [ -f "${file}.org" ]; then
-      mv -f "${file}.org" "${file}"
-    fi
+    remove_file "/home/${user}/.bash_aliases"
+    remove_file "/home/${user}/.bashrc_aliases"
+    # Restore file from its backup if present.
+    revert_file "/home/${user}/.bashrc"
   done
 }
 
@@ -363,7 +337,6 @@ config_jumphost () {
   # Enable remote port forwarding.
   sed -i "s/#GatewayPorts no/GatewayPorts yes/"              "${file}"
   sed -i "s/#AllowTcpForwarding yes/AllowTcpForwarding yes/" "${file}"
-  systemctl restart ssh
   # Port 22222 is for setting up a reverse SSH tunnel.
   # Ports 22000-22099 are for reverse SSH tunnels.
   # Ports 33000-33099 are for reverse RDP tunnels.
@@ -384,7 +357,6 @@ cat << 'EOF' | sed "s/^  //" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
   :PREROUTING ACCEPT [0:0]
   -A PREROUTING -p tcp --dport 22222 -j REDIRECT --to-port 22
   COMMIT
-
   # JUMP HOST CONFIGURATION TAIL
 EOF
   fi
@@ -398,6 +370,7 @@ EOF
   sed -i 's|#net/ipv4/ip_forward=1|net/ipv4/ip_forward=1|' "${file}"
   sed -i 's|#net/ipv6/conf/default/forwarding=1|net/ipv6/conf/default/forwarding=1|' "${file}"
   sed -i 's|#net/ipv6/conf/all/forwarding=1|net/ipv6/conf/all/forwarding=1|' "${file}"
+  systemctl restart ssh
   systemctl restart ufw
 }
 
@@ -421,7 +394,6 @@ revert_jumphost () {
   # Disable remote port forwarding.
   sed -i "s/GatewayPorts yes/#GatewayPorts no/"              "${file}"
   sed -i "s/AllowTcpForwarding yes/#AllowTcpForwarding yes/" "${file}"
-  systemctl restart ssh
   # Port 22222 is for setting up a reverse SSH tunnel.
   # Ports 22000-22099 are for reverse SSH tunnels.
   # Ports 33000-33099 are for reverse RDP tunnels.
@@ -442,6 +414,7 @@ revert_jumphost () {
   sed -i 's|net/ipv4/ip_forward=1|#net/ipv4/ip_forward=1|' "${file}"
   sed -i 's|net/ipv6/conf/default/forwarding=1|#net/ipv6/conf/default/forwarding=1|' "${file}"
   sed -i 's|net/ipv6/conf/all/forwarding=1|#net/ipv6/conf/all/forwarding=1|' "${file}"
+  systemctl restart ssh
   systemctl restart ufw
 }
 
@@ -515,8 +488,6 @@ revert_rsyslog () {
     file="/etc/systemd/journald.conf"
     sed -i "s/Storage=none/#Storage=auto/"              "${file}"
     sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
-#   # Restore file from its backup if present.
-#   revert_file "${file}"
     systemctl restart rsyslog
     systemctl restart systemd-journald
   fi
@@ -592,10 +563,8 @@ revert_sudo () {
     return
   fi
   file="/etc/sudoers"
-  # Restore original file.
-  if [ -f "${file}.org" ]; then
-    mv -f "${file}.org" "${file}"
-  fi
+  # Restore file from its backup if present.
+  revert_file "${file}"
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Do not double quote to allow globbing and word splitting.
@@ -608,10 +577,7 @@ revert_sudo () {
       sed -i -r "s/^(sudo:.*)${user}(.*)$/\1\2/"  "${file}"
     fi
     # Restore first time lecture about sudo.
-    file="/var/lib/sudo/lectured/${user}"
-    if [ -f "${file}" ]; then
-      rm -f "${file}"
-    fi
+    remove_file "/var/lib/sudo/lectured/${user}"
   done
 }
 
@@ -850,11 +816,7 @@ revert_vim () {
   fi
   # Configuration of /etc/environment file.
   setup_vim revert
-  # Remove vim backup folder for root user.
-  folder="/root/.vim/backup"
-  if [ -d "${folder}" ]; then
-    rm -rf "${folder}"
-  fi
+  remove_folder "/root/.vim/backup"
   folder="/root/.vim"
   # Check folder is empty.
   if [ ! "$(ls -A "${folder}")" ]; then
@@ -865,26 +827,19 @@ revert_vim () {
   # Remove vim backup folder for all local users.
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
-    folder="/home/${user}/.vim/backup"
-    if [ -d "${folder}" ]; then
-      rm -rf "${folder}"
-    fi
+    remove_folder "/home/${user}/.vim/backup"
     folder="/home/${user}/.vim"
     # Check folder is empty.
     if ! [ "$(ls -A "${folder}")" ]; then
       rmdir "${folder}"
     fi
   done
-  # Remove vim configuration file.
-  file="/etc/vim/vimrc.local"
-  if [ -f "${file}" ]; then
-    rm -f "${file}"
-  fi
+  remove_file "/etc/vim/vimrc.local"
   # Remove PowerShell syntax highlighting.
-  rm -rf /etc/vim/ftdetect
-  rm -rf /etc/vim/ftplugin
-  rm -rf /etc/vim/indent
-  rm -rf /etc/vim/syntax
+  remove_folder "/etc/vim/ftdetect"
+  remove_folder "/etc/vim/ftplugin"
+  remove_folder "/etc/vim/indent"
+  remove_folder "/etc/vim/syntax"
 }
 
 ################################################################################
