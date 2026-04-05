@@ -43,12 +43,13 @@ append_line () {
   file="$1"
   line="$2"
   if ! grep --quiet "${line}" "${file}"; then
+    # Back up file if its backup is missing.
     backup_file "${file}"
     echo "${line}" >> "${file}"
   fi
 }
 
-# Function:	Back up original file if backup is missing.
+# Function:	Back up file if its backup is missing.
 # Parameters:	The 1st parameter contains the file name.
 # Returns:	None.
 backup_file () {
@@ -56,17 +57,6 @@ backup_file () {
   file="$1"
   if [ -f "${file}" ] && [ ! -f "${file}.org" ]; then
     cp -a "${file}" "${file}.org"
-  fi
-}
-
-# Function:	Check for root privileges.
-# Parameters:	None.
-# Returns:	Exit status 1 if no root privileges.
-test_root_privileges () {
-  if [ "$(id -u)" -ne 0 ]; then
-#   >> /dev/tty echo ":: No root privileges, aborting..."
-    echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
-    return 1
   fi
 }
 
@@ -82,6 +72,34 @@ remove_line () {
     sed -i "/${line}/d" "${file}"
   fi
 }
+
+# Function:	Restore file from its backup if present.
+# Parameters:	The 1st parameter contains the file name.
+# Returns:	None.
+revert_file () {
+  local file
+  file="$1"
+  if [ -f "${file}.org" ]; then
+    mv -f "${file}.org" "${file}"
+  fi
+}
+
+# Function:	Check for root privileges.
+# Parameters:	None.
+# Returns:	Exit status 1 if no root privileges.
+test_root_privileges () {
+  if [ "$(id -u)" -ne 0 ]; then
+#   >> /dev/tty echo ":: No root privileges, aborting..."
+    echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
+    return 1
+  fi
+}
+
+################################################################################
+#									       #
+#				MAIN					       #
+#									       #
+################################################################################
 
 # Exit immediately for any failed (non-zero exit code) untested commands.
 set -e

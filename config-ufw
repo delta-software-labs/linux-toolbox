@@ -7,6 +7,6 @@ set -e
 . ./config.sh
 
 if test_root_privileges; then
-  revert_vim
+  config_ufw
 fi
 

@@ -9,12 +9,14 @@
 # Function:	Configuration of apt.
 # Parameters:	The 1st parameter contains the action to perform.
 #		Valid actions: config, revert.
+# Remarks:	Only for Debian Trixie.
 # Returns:	None.
 setup_apt () {
-  local action file line lines
-  file="/etc/issue.net" 
-  # Only do for Debian 13 Trixie.
-  if [ ! -f "${file}" ] || [ "$(sed -e "s/.* //g" "${file}")" != "13" ]; then
+  local action distro file line lines
+  # Get distro edition.
+  distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
+  # Only do for Debian Trixie.
+  if echo "${distro}" | grep -Eiq "Trixie"; then
     return
   fi
   action="$1"
@@ -157,7 +159,7 @@ cat << EOF | sed -e "s/^  //" > "${file}"
   alias iw-scan='iw dev wlan0 scan | grep -Ei "^BSS|freq:|signal:|SSID:" | grep -Eiv "HESSID:"'
   alias iwlist-scan='iwlist wlan0 scan | grep -Ei "Cell|Freq|Qual|SSID"'
 EOF
-  # Back up original .bashrc file of root account.
+  # Back up file if its backup is missing.
   backup_file "/root/.bashrc"
   # Copy skeleton files to root account.
   /bin/cp -a /etc/skel/.bash_aliases /root
@@ -168,7 +170,7 @@ EOF
   # Copy skeleton files to all user accounts.
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
-    # Back up original .bashrc file of user account.
+    # Back up file if its backup is missing.
     backup_file "/home/${user}/.bashrc"
     # Copy skeleton files to user account.
     /bin/cp -a /etc/skel/.bash_aliases "/home/${user}"
@@ -315,8 +317,6 @@ config_editor () {
   if ! which -s vim.basic; then
     return
   fi
-# # Back up symbolic link of original default editor.
-# backup_file "/etc/alternatives/editor"
   # Make vim.basic the default editor.
   update-alternatives --quiet --set editor /usr/bin/vim.basic
 }
@@ -326,18 +326,64 @@ config_editor () {
 # Remarks:	Restores the default editor for all users.
 # Returns:	None.
 revert_editor () {
-# local editor file
   # Check vim is installed.
   if ! which -s vim.basic; then
     return
   fi
   # Restore default editor.
-# file="/etc/alternatives/editor"
-# if [ -f "${file}.org" ]; then
-#   editor="$(ls -al "${file}.org" | sed -e "s/^.* //g")"
-#   update-alternatives --quiet --set editor "${editor}"
-# fi
   update-alternatives --quiet --auto editor
+}
+
+################################################################################
+#									       #
+#				RSYSLOG					       #
+#									       #
+################################################################################
+
+# Function:	Configuration of rsyslog.
+# Parameters:	None.
+# Remarks:	Disables systemd-journald for Debian distro's.
+# Returns:	None.
+config_rsyslog () {
+  local distro file
+  # Check rsyslog is installed.
+  if ! which -s rsyslogd; then
+    return
+  fi
+  # Get distro edition.
+  distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
+  # Only do for Debian distro's. Skip for Ubuntu distro's.
+  if echo "${distro}" | grep -Eiq "Bullseye|Bookworm|Trixie"; then
+    file="/etc/systemd/journald.conf"
+    # Back up file if its backup is missing.
+    backup_file "${file}"
+    sed -i "s/#Storage=auto/Storage=none/" "${file}"
+    sed -i "s/#ForwardToSyslog=no/ForwardToSyslog=yes/" "${file}"
+    systemctl restart rsyslog
+    systemctl restart systemd-journald
+  fi
+}
+
+# Function:	Undo configuration of rsyslog.
+# Parameters:	None.
+# Remarks:	Restores systemd-journald for Debian distro's.
+# Returns:	None.
+revert_rsyslog () {
+  local distro file
+  # Check rsyslog is installed.
+  if ! which -s rsyslogd; then
+    return
+  fi
+  # Get distro edition.
+  distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
+  # Only do for Debian distro's. Skip for Ubuntu distro's.
+  if echo "${distro}" | grep -Eiq "Bullseye|Bookworm|Trixie"; then
+    file="/etc/systemd/journald.conf"
+    # Restore file from its backup if present.
+    revert_file "${file}"
+    systemctl restart rsyslog
+    systemctl restart systemd-journald
+  fi
 }
 
 ################################################################################
@@ -364,7 +410,7 @@ config_sudo () {
     return
   fi
   file="/etc/sudoers"
-  # Back up original file if backup file is missing.
+  # Back up file if its backup is missing.
   backup_file "${file}"
   # Check root password has been set.
   if grep --quiet "^root:\*:" /etc/shadow; then
@@ -430,6 +476,62 @@ revert_sudo () {
       rm -f "${file}"
     fi
   done
+}
+
+################################################################################
+#									       #
+#				UFW					       #
+#									       #
+################################################################################
+
+# Function:	Configuration of uncomplicated firewall.
+# Parameters:	None.
+# Remarks:	Enables and restarts the firewall.
+#		Allows incoming ssh connections on port 22.
+# Returns:	None.
+config_ufw () {
+  local file
+  # Check ufw is installed.
+  if ! which -s ufw; then
+    return
+  fi
+  file="/etc/default/ufw"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  file="/etc/ufw/sysctl.conf"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  # Enable uncomplicated firewall.
+  ufw --force enable > /dev/null
+  # Allow outgoing connections.
+  ufw default allow outgoing > /dev/null
+  # Deny incoming connections.
+  ufw default deny incoming > /dev/null
+  # Allow incoming SSH.
+  ufw allow ssh > /dev/null
+  # Restart uncomplicated firewall.
+  systemctl restart ufw
+}
+
+# Function:	Undo configuration of uncomplicated firewall.
+# Parameters:	None.
+# Remarks:	Disables and restarts the firewall.
+# Returns:	None.
+revert_ufw () {
+  local file
+  # Check ufw is installed.
+  if ! which -s ufw; then
+    return
+  fi
+  file="/etc/default/ufw"
+  # Restore file from its backup if present.
+  revert_file "${file}"
+  file="/etc/ufw/sysctl.conf"
+  # Restore file from its backup if present.
+  revert_file "${file}"
+  ufw disable > /dev/null
+  # Restart uncomplicated firewall.
+  systemctl restart ufw
 }
 
 ################################################################################
