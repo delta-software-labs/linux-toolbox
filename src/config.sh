@@ -336,6 +336,137 @@ revert_editor () {
 
 ################################################################################
 #									       #
+#				JUMP HOST				       #
+#									       #
+################################################################################
+
+# Function:	Configuration for RDP/SSH jump host.
+# Parameters:	None.
+# Remarks:	Enables remote port forwarding on the jump host.
+# Returns:	None.
+config_jumphost () {
+  local file line lines pattern
+  # Check openssh server is installed.
+  if ! which -s sshd; then
+#   echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
+    return
+  fi
+  file="/etc/ssh/sshd_config"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  # Enable remote port forwarding.
+  sed -i "s/#GatewayPorts no/GatewayPorts yes/"              "${file}"
+  sed -i "s/#AllowTcpForwarding yes/AllowTcpForwarding yes/" "${file}"
+  systemctl restart sshd
+  # Check firewall is installed.
+  if ! which -s ufw; then
+    return
+  fi
+  # Port 22222 is for setting up a reverse SSH tunnel.
+  # Ports 22000-22099 are for reverse SSH tunnels.
+  # Ports 33000-33099 are for reverse RDP tunnels.
+  ufw allow 22222/tcp
+  ufw allow 22000:22099/tcp
+  ufw allow 33000:33099/tcp
+  file="/etc/ufw/before.rules"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  if ! grep --quiet "# Port forwarding for jump host." "${file}"; then
+    pattern="# Don't delete these required lines, otherwise there will be errors"
+    # Insert text above pattern.
+    cat << \
+EOF | sed "s/^ \+//" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
+  # >>> JUMP HOST CONFIGURATION >>>
+  # Port forwarding for jump host.
+  *nat
+  :PREROUTING ACCEPT [0:0]
+  -A PREROUTING -p tcp --dport 22222 -j REDIRECT --to-port 22
+  COMMIT
+  # <<< JUMP HOST CONFIGURATION <<<
+
+EOF
+  fi
+  file="/etc/default/ufw"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' "${file}"
+  file="/etc/ufw/sysctl.conf"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  sed -i 's|#net/ipv4/ip_forward=1|net/ipv4/ip_forward=1|' "${file}"
+  sed -i 's|#net/ipv6/conf/default/forwarding=1|net/ipv6/conf/default/forwarding=1|' "${file}"
+  sed -i 's|#net/ipv6/conf/all/forwarding=1|net/ipv6/conf/all/forwarding=1|' "${file}"
+  systemctl restart ufw
+}
+
+# Function:	Undo configuration for RDP/SSH jump host.
+# Parameters:	None.
+# Remarks:	Disables remote port forwarding on the jump host.
+# Returns:	None.
+revert_jumphost () {
+  local file line lines pattern
+  # Check openssh server is installed.
+  if ! which -s sshd; then
+    return
+  fi
+  file="/etc/ssh/sshd_config"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  # Disable remote port forwarding.
+  sed -i "s/GatewayPorts yes/#GatewayPorts no/"              "${file}"
+  sed -i "s/AllowTcpForwarding yes/#AllowTcpForwarding yes/" "${file}"
+  systemctl restart sshd
+  # Check firewall is installed.
+  if ! which -s ufw; then
+    return
+  fi
+  # Port 22222 is for setting up a reverse SSH tunnel.
+  # Ports 22000-22099 are for reverse SSH tunnels.
+  # Ports 33000-33099 are for reverse RDP tunnels.
+  ufw delete allow 22222/tcp
+  ufw delete allow 22000:22099/tcp
+  ufw delete allow 33000:33099/tcp
+  file="/etc/ufw/before.rules"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  if grep --quiet "# Port forwarding for jump host." "${file}"; then
+  fi
+  sed -i /# >>> JUMP HOST CONFIGURATION >>>/,/# <<< JUMP HOST CONFIGURATION <<</d "${file}"
+  file="/etc/default/ufw"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  sed -i 's/DEFAULT_FORWARD_POLICY="ACCEPT"/DEFAULT_FORWARD_POLICY="DROP"/' "${file}"
+  file="/etc/ufw/sysctl.conf"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  sed -i 's|net/ipv4/ip_forward=1|#net/ipv4/ip_forward=1|' "${file}"
+  sed -i 's|net/ipv6/conf/default/forwarding=1|#net/ipv6/conf/default/forwarding=1|' "${file}"
+  sed -i 's|net/ipv6/conf/all/forwarding=1|#net/ipv6/conf/all/forwarding=1|' "${file}"
+  systemctl restart ufw
+}
+
+################################################################################
+#									       #
+#				OPENSSH SERVER				       #
+#									       #
+################################################################################
+
+# Function:	Configuration of OpenSSH server.
+# Parameters:	None.
+# Remarks:	
+# Returns:	None.
+config_openssh_server () {
+}
+
+# Function:	Undo configuration of OpenSSH server.
+# Parameters:	None.
+# Remarks:	
+# Returns:	None.
+revert_openssh_server () {
+}
+
+################################################################################
+#									       #
 #				RSYSLOG					       #
 #									       #
 ################################################################################
@@ -357,7 +488,7 @@ config_rsyslog () {
     file="/etc/systemd/journald.conf"
     # Back up file if its backup is missing.
     backup_file "${file}"
-    sed -i "s/#Storage=auto/Storage=none/" "${file}"
+    sed -i "s/#Storage=auto/Storage=none/"              "${file}"
     sed -i "s/#ForwardToSyslog=no/ForwardToSyslog=yes/" "${file}"
     systemctl restart rsyslog
     systemctl restart systemd-journald
@@ -379,8 +510,10 @@ revert_rsyslog () {
   # Only do for Debian distro's. Skip for Ubuntu distro's.
   if echo "${distro}" | grep -Eiq "Bullseye|Bookworm|Trixie"; then
     file="/etc/systemd/journald.conf"
-    # Restore file from its backup if present.
-    revert_file "${file}"
+    sed -i "s/Storage=none/#Storage=auto/"              "${file}"
+    sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
+#   # Restore file from its backup if present.
+#   revert_file "${file}"
     systemctl restart rsyslog
     systemctl restart systemd-journald
   fi
@@ -491,7 +624,7 @@ revert_sudo () {
 # Returns:	None.
 config_ufw () {
   local file
-  # Check ufw is installed.
+  # Check firewall is installed.
   if ! which -s ufw; then
     return
   fi
@@ -519,7 +652,7 @@ config_ufw () {
 # Returns:	None.
 revert_ufw () {
   local file
-  # Check ufw is installed.
+  # Check firewall is installed.
   if ! which -s ufw; then
     return
   fi

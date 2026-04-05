@@ -1,0 +1,34 @@
+# Apply single quotes around EOF to avoid interpreting variables.
+# Avoid single quotes around EOF to allow interpreting variables.
+
+# awk -i inplace -v x="${lines}" "/${pattern}/{print x} {print}" "${file}"	# Insert above pattern.
+# awk -i inplace -v x="${lines}" "{print} /${pattern}/{print x}" "${file}"	# Insert below pattern.
+
+# Insert at start of file.
+cat << EOF | sed "s/^ \+//" | sed -i "0r /dev/stdin" "${file}"
+  # >>> JUMP HOST CONFIGURATION >>>
+  # <<< JUMP HOST CONFIGURATION <<<
+
+EOF
+
+# Insert above pattern.
+cat << EOF | sed "s/^ \+//" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
+  # >>> JUMP HOST CONFIGURATION >>>
+  # <<< JUMP HOST CONFIGURATION <<<
+
+EOF
+
+# Insert below pattern.
+cat << EOF | sed "s/^ \+//" | sed -i "/${pattern}/r /dev/stdin" "${file}"
+
+  # >>> JUMP HOST CONFIGURATION >>>
+  # <<< JUMP HOST CONFIGURATION <<<
+EOF
+
+# Append at end of file.
+cat << EOF | sed -e "s/^ \+ //" >> "${file}"
+
+  # >>> JUMP HOST CONFIGURATION >>>
+  # <<< JUMP HOST CONFIGURATION <<<
+EOF
+

@@ -3,8 +3,11 @@
 # Exit immediately for any failed (non-zero exit code) untested commands.
 set -e
 
-. ./common.sh
-. ./config.sh
+CMDDIR="$(dirname "$(readlink -f "$0")")"
+SRCDIR="$(echo "${CMDDIR}" | sed -e "s/commands/src/")"
+
+. "${SRCDIR}/common.sh"
+. "${SRCDIR}/config.sh"
 
 if test_root_privileges; then
   setup_date config

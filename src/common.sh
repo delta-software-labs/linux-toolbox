@@ -22,7 +22,7 @@ add_colors () {
   # The _colors.mk file used by Makefile defines color names.
   # However, its syntax is for makefiles and it fails when dot sourced by a shell. 
   # Convert makefile syntax to shell compatible syntax.
-  cat ./_colors.mk | while read color; do
+  cat "${SRCDIR}/_colors.mk" | while read color; do
     color="$(echo "${color}" | grep " = " | tr -d " " | tr "(" "{" | tr ")" "}")"
     color="$(echo "${color}" | sed -re "s/^(.*)=(.*)$/\1=\"\2\"/g")"
     eval "${color}"
@@ -103,6 +103,9 @@ test_root_privileges () {
 
 # Exit immediately for any failed (non-zero exit code) untested commands.
 set -e
+
+CMDDIR="$(dirname "$(readlink -f "$0")")"
+SRCDIR="$(echo "${CMDDIR}" | sed -e "s/commands/src/")"
 
 add_colors
 

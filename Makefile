@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-include _colors.mk
+include src/_colors.mk
 
 check:
 	@echo ":: Checking $(WHITE)FOO$(RESET) directory."

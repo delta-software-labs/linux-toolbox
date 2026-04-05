@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Exit immediately for any failed (non-zero exit code) untested commands.
+set -e
+
+CMDDIR="$(dirname "$(readlink -f "$0")")"
+echo "${CMDDIR}"
+
+for command in "$(ls "${CMDDIR}/commands")"; do
+  ln -f -s "${CMDDIR}/commands/${command}" "/usr/local/sbin/${command}"
+done
+
