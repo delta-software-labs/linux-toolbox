@@ -6,29 +6,25 @@
 
 # Insert at start of file.
 cat << EOF | sed "s/^ \+//" | sed -i "0r /dev/stdin" "${file}"
-  # >>> JUMP HOST CONFIGURATION >>>
-  # <<< JUMP HOST CONFIGURATION <<<
-
+  # JUMP HOST CONFIGURATION HEAD
+  # JUMP HOST CONFIGURATION TAIL
 EOF
 
 # Insert above pattern.
 cat << EOF | sed "s/^ \+//" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
-  # >>> JUMP HOST CONFIGURATION >>>
-  # <<< JUMP HOST CONFIGURATION <<<
-
+  # JUMP HOST CONFIGURATION HEAD
+  # JUMP HOST CONFIGURATION TAIL
 EOF
 
 # Insert below pattern.
 cat << EOF | sed "s/^ \+//" | sed -i "/${pattern}/r /dev/stdin" "${file}"
-
-  # >>> JUMP HOST CONFIGURATION >>>
-  # <<< JUMP HOST CONFIGURATION <<<
+  # JUMP HOST CONFIGURATION HEAD
+  # JUMP HOST CONFIGURATION TAIL
 EOF
 
 # Append at end of file.
 cat << EOF | sed -e "s/^ \+ //" >> "${file}"
-
-  # >>> JUMP HOST CONFIGURATION >>>
-  # <<< JUMP HOST CONFIGURATION <<<
+  # JUMP HOST CONFIGURATION HEAD
+  # JUMP HOST CONFIGURATION TAIL
 EOF
 

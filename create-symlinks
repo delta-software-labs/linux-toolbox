@@ -4,9 +4,9 @@
 set -e
 
 CMDDIR="$(dirname "$(readlink -f "$0")")"
-echo "${CMDDIR}"
 
-for command in "$(ls "${CMDDIR}/commands")"; do
+# Do not double quote to allow globbing and word splitting.
+for command in $(ls "${CMDDIR}/commands"); do
   ln -f -s "${CMDDIR}/commands/${command}" "/usr/local/sbin/${command}"
 done
 

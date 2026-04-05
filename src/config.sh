@@ -78,7 +78,7 @@ config_bash () {
   local file user users
   # Add skeleton files.
   file="/etc/skel/.bash_aliases"
-  # Use single quotes around EOF to prevent interpreting variables.
+  # Apply single quotes around EOF to avoid interpreting variables.
 cat << 'EOF' | sed -e "s/^  //" > "${file}"
   # Set default editor.
   export EDITOR=vi
@@ -110,8 +110,8 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   fi
 EOF
   file="/etc/skel/.bashrc_aliases"
-  # Do not use single quotes around EOF to allow interpreting variables.
-cat << EOF | sed -e "s/^  //" > "${file}"
+  # Apply single quotes around EOF to avoid interpreting variables.
+cat << 'EOF' | sed -e "s/^  //" > "${file}"
   # A trailing space in the alias value causes the next word to be checked
   # for alias substitution when the alias is expanded. E.g. "sudo dir /".
   alias sudo='sudo '
@@ -315,6 +315,7 @@ setup_date () {
 config_editor () {
   # Check vim is installed.
   if ! which -s vim.basic; then
+    echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
   # Make vim.basic the default editor.
@@ -348,7 +349,12 @@ config_jumphost () {
   local file line lines pattern
   # Check openssh server is installed.
   if ! which -s sshd; then
-#   echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
+    echo ":: Please install ${WHITE}openssh-server${RESET} package and try again."
+    return
+  fi
+  # Check firewall is installed.
+  if ! which -s ufw; then
+    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
   file="/etc/ssh/sshd_config"
@@ -357,33 +363,29 @@ config_jumphost () {
   # Enable remote port forwarding.
   sed -i "s/#GatewayPorts no/GatewayPorts yes/"              "${file}"
   sed -i "s/#AllowTcpForwarding yes/AllowTcpForwarding yes/" "${file}"
-  systemctl restart sshd
-  # Check firewall is installed.
-  if ! which -s ufw; then
-    return
-  fi
+  systemctl restart ssh
   # Port 22222 is for setting up a reverse SSH tunnel.
   # Ports 22000-22099 are for reverse SSH tunnels.
   # Ports 33000-33099 are for reverse RDP tunnels.
-  ufw allow 22222/tcp
-  ufw allow 22000:22099/tcp
-  ufw allow 33000:33099/tcp
+  ufw allow 22222/tcp > /dev/null
+  ufw allow 22000:22099/tcp > /dev/null
+  ufw allow 33000:33099/tcp > /dev/null
   file="/etc/ufw/before.rules"
   # Back up file if its backup is missing.
   backup_file "${file}"
   if ! grep --quiet "# Port forwarding for jump host." "${file}"; then
     pattern="# Don't delete these required lines, otherwise there will be errors"
+    # Apply single quotes around EOF to avoid interpreting variables.
     # Insert text above pattern.
-    cat << \
-EOF | sed "s/^ \+//" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
-  # >>> JUMP HOST CONFIGURATION >>>
+cat << 'EOF' | sed "s/^  //" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
+  # JUMP HOST CONFIGURATION HEAD
   # Port forwarding for jump host.
   *nat
   :PREROUTING ACCEPT [0:0]
   -A PREROUTING -p tcp --dport 22222 -j REDIRECT --to-port 22
   COMMIT
-  # <<< JUMP HOST CONFIGURATION <<<
 
+  # JUMP HOST CONFIGURATION TAIL
 EOF
   fi
   file="/etc/default/ufw"
@@ -409,29 +411,27 @@ revert_jumphost () {
   if ! which -s sshd; then
     return
   fi
+  # Check firewall is installed.
+  if ! which -s ufw; then
+    return
+  fi
   file="/etc/ssh/sshd_config"
   # Back up file if its backup is missing.
   backup_file "${file}"
   # Disable remote port forwarding.
   sed -i "s/GatewayPorts yes/#GatewayPorts no/"              "${file}"
   sed -i "s/AllowTcpForwarding yes/#AllowTcpForwarding yes/" "${file}"
-  systemctl restart sshd
-  # Check firewall is installed.
-  if ! which -s ufw; then
-    return
-  fi
+  systemctl restart ssh
   # Port 22222 is for setting up a reverse SSH tunnel.
   # Ports 22000-22099 are for reverse SSH tunnels.
   # Ports 33000-33099 are for reverse RDP tunnels.
-  ufw delete allow 22222/tcp
-  ufw delete allow 22000:22099/tcp
-  ufw delete allow 33000:33099/tcp
+  ufw delete allow 22222/tcp > /dev/null
+  ufw delete allow 22000:22099/tcp > /dev/null
+  ufw delete allow 33000:33099/tcp > /dev/null
   file="/etc/ufw/before.rules"
   # Back up file if its backup is missing.
   backup_file "${file}"
-  if grep --quiet "# Port forwarding for jump host." "${file}"; then
-  fi
-  sed -i /# >>> JUMP HOST CONFIGURATION >>>/,/# <<< JUMP HOST CONFIGURATION <<</d "${file}"
+  sed -i "/# JUMP HOST CONFIGURATION HEAD/,/# JUMP HOST CONFIGURATION TAIL/d" "${file}"
   file="/etc/default/ufw"
   # Back up file if its backup is missing.
   backup_file "${file}"
@@ -456,6 +456,7 @@ revert_jumphost () {
 # Remarks:	
 # Returns:	None.
 config_openssh_server () {
+  ::
 }
 
 # Function:	Undo configuration of OpenSSH server.
@@ -463,6 +464,7 @@ config_openssh_server () {
 # Remarks:	
 # Returns:	None.
 revert_openssh_server () {
+  ::
 }
 
 ################################################################################
@@ -479,6 +481,7 @@ config_rsyslog () {
   local distro file
   # Check rsyslog is installed.
   if ! which -s rsyslogd; then
+    echo ":: Please install ${WHITE}rsyslog${RESET} package and try again."
     return
   fi
   # Get distro edition.
@@ -540,6 +543,7 @@ config_sudo () {
   fi
   # Check sudo is installed.
   if ! which -s sudo; then
+    echo ":: Please install ${WHITE}sudo${RESET} package and try again."
     return
   fi
   file="/etc/sudoers"
@@ -626,6 +630,7 @@ config_ufw () {
   local file
   # Check firewall is installed.
   if ! which -s ufw; then
+    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
   file="/etc/default/ufw"
@@ -710,6 +715,7 @@ config_vim () {
   local file folder user users
   # Check vim is installed.
   if ! which -s vim; then
+    echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
   # Configuration of /etc/environment file.
@@ -729,7 +735,7 @@ config_vim () {
   done
   # Add vim configuration file.
   file="/etc/vim/vimrc.local"
-  # Use single quotes around EOF to prevent interpreting variables.
+  # Apply single quotes around EOF to avoid interpreting variables.
 cat << 'EOF' | sed -e "s/^  //" > "${file}"
   if exists('${DISPLAY}')
     " Running under X11.
