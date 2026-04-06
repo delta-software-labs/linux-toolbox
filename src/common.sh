@@ -42,6 +42,12 @@ append_line () {
   local file line
   file="$1"
   line="$2"
+
+  if [ ! -f "${file}" ]; then
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
+    return 1
+  fi
+
   if ! grep --quiet "${line}" "${file}"; then
     # Back up file if its backup is missing.
     backup_file "${file}"
@@ -55,21 +61,14 @@ append_line () {
 backup_file () {
   local file
   file="$1"
-  if [ -f "${file}" ] && [ ! -f "${file}.org" ]; then
-    cp -a "${file}" "${file}.org"
-  fi
-}
 
-# Function:	Remove line from file if it is present.
-# Parameters:	The 1st parameter contains the file name.
-#		The 2nd parameter contains the line.
-# Returns:	None.
-remove_line () {
-  local file line
-  file="$1"
-  line="$2"
-  if grep --quiet "${line}" "${file}"; then
-    sed -i "/${line}/d" "${file}"
+  if [ ! -f "${file}" ]; then
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
+    return 1
+  fi
+
+  if [ ! -f "${file}.org" ]; then
+    cp -a "${file}" "${file}.org"
   fi
 }
 
@@ -79,6 +78,7 @@ remove_line () {
 remove_file () {
   local file
   file="$1"
+
   if [ -f "${file}" ]; then
     rm -f "${file}"
   fi
@@ -90,8 +90,28 @@ remove_file () {
 remove_folder () {
   local folder
   folder="$1"
+
   if [ -d "${folder}" ]; then
     rm -rf "${folder}"
+  fi
+}
+
+# Function:	Remove line from file if it is present.
+# Parameters:	The 1st parameter contains the file name.
+#		The 2nd parameter contains the line.
+# Returns:	None.
+remove_line () {
+  local file line
+  file="$1"
+  line="$2"
+
+  if [ ! -f "${file}" ]; then
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
+    return 1
+  fi
+
+  if grep --quiet "${line}" "${file}"; then
+    sed -i "/${line}/d" "${file}"
   fi
 }
 
@@ -101,6 +121,7 @@ remove_folder () {
 revert_file () {
   local file
   file="$1"
+
   if [ -f "${file}.org" ]; then
     command cp -a "${file}.org" "${file}"
   fi
@@ -111,7 +132,6 @@ revert_file () {
 # Returns:	Exit status 1 if no root privileges.
 test_root_privileges () {
   if [ "$(id -u)" -ne 0 ]; then
-#   >> /dev/tty echo ":: No root privileges, aborting..."
     echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
     return 1
   fi

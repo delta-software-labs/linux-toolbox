@@ -13,12 +13,14 @@
 # Returns:	None.
 setup_apt () {
   local action distro file line lines
+
   # Get distro edition.
   distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
   # Only do for Debian Trixie.
   if echo "${distro}" | grep -Eiq "Trixie"; then
     return
   fi
+
   action="$1"
   file="/etc/apt/sources.list"
   lines="
@@ -76,6 +78,7 @@ setup_apt () {
 # Returns:	None.
 config_bash () {
   local file user users
+
   # Add skeleton files.
   file="/etc/skel/.bash_aliases"
   # Apply single quotes around EOF to avoid interpreting variables.
@@ -109,6 +112,7 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
     . ~/.bashrc_aliases
   fi
 EOF
+
   file="/etc/skel/.bashrc_aliases"
   # Apply single quotes around EOF to avoid interpreting variables.
 cat << 'EOF' | sed -e "s/^  //" > "${file}"
@@ -159,12 +163,14 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   alias iw-scan='iw dev wlan0 scan | grep -Ei "^BSS|freq:|signal:|SSID:" | grep -Eiv "HESSID:"'
   alias iwlist-scan='iwlist wlan0 scan | grep -Ei "Cell|Freq|Qual|SSID"'
 EOF
+
   # Back up file if its backup is missing.
   backup_file "/root/.bashrc"
   # Copy skeleton files to root account.
-  /bin/cp -a /etc/skel/.bash_aliases /root
-  /bin/cp -a /etc/skel/.bashrc /root
-  /bin/cp -a /etc/skel/.bashrc_aliases /root
+  command cp -a /etc/skel/.bash_aliases /root
+  command cp -a /etc/skel/.bashrc /root
+  command cp -a /etc/skel/.bashrc_aliases /root
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Copy skeleton files to all user accounts.
@@ -173,16 +179,17 @@ EOF
     # Back up file if its backup is missing.
     backup_file "/home/${user}/.bashrc"
     # Copy skeleton files to user account.
-    /bin/cp -a /etc/skel/.bash_aliases "/home/${user}"
-    /bin/cp -a /etc/skel/.bashrc "/home/${user}"
-    /bin/cp -a /etc/skel/.bashrc_aliases "/home/${user}"
+    command cp -a /etc/skel/.bash_aliases "/home/${user}"
+    command cp -a /etc/skel/.bashrc "/home/${user}"
+    command cp -a /etc/skel/.bashrc_aliases "/home/${user}"
     chown "${user}:${user}" "/home/${user}/.bash_aliases"
     chown "${user}:${user}" "/home/${user}/.bashrc"
     chown "${user}:${user}" "/home/${user}/.bashrc_aliases"
   done
+
   # Change color of root prompt from lime to red.
-  sed -i "s/lime/red/"  /root/.bash_aliases
-  sed -i "s/;32m/;31m/" /root/.bash_aliases
+  sed -i "s/lime/red/"  "/root/.bash_aliases"
+  sed -i "s/;32m/;31m/" "/root/.bash_aliases"
 }
 
 # Function:	Undo configuration of bash shell.
@@ -194,12 +201,15 @@ EOF
 # Returns:	None.
 revert_bash () {
   local user users
+
   remove_file "/etc/skel/.bash_aliases"
   remove_file "/etc/skel/.bashrc_aliases"
   remove_file "/root/.bash_aliases"
   remove_file "/root/.bashrc_aliases"
+
   # Restore file from its backup if present.
   revert_file "/root/.bashrc"
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
   # Remove skeleton files for all user accounts.
@@ -226,11 +236,13 @@ setup_cron () {
   local action file line lines
   action="$1"
   file="/etc/environment"
+
   lines="
     # Prevent ANSI color output in cron jobs.
     NO_COLOR=true
   "
   lines="$(echo "${lines}" | sed -e "s/^ *//g" | grep --invert-match "^$")"
+
   if [ "${action}" = "config" ]; then
     echo "${lines}" | while read line; do
       append_line "${file}" "${line}"
@@ -258,11 +270,13 @@ setup_date () {
   local action file line lines
   action="$1"
   file="/etc/environment"
+
   lines="
     # Set ISO 8601 international date format.
     TIME_STYLE='+%Y-%m-%d %H:%M:%S'
   "
   lines="$(echo "${lines}" | sed -e "s/^ *//g" | grep --invert-match "^$")"
+
   if [ "${action}" = "config" ]; then
     echo "${lines}" | while read line; do
       append_line "${file}" "${line}"
@@ -292,6 +306,7 @@ config_editor () {
     echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
+
   # Make vim.basic the default editor.
   update-alternatives --quiet --set editor /usr/bin/vim.basic
 }
@@ -301,10 +316,6 @@ config_editor () {
 # Remarks:	Restores the default editor for all users.
 # Returns:	None.
 revert_editor () {
-  # Check vim is installed.
-  if ! which -s vim.basic; then
-    return
-  fi
   # Restore default editor.
   update-alternatives --quiet --auto editor
 }
@@ -321,28 +332,32 @@ revert_editor () {
 # Returns:	None.
 config_jumphost () {
   local file line lines pattern
-  # Check openssh server is installed.
+
+  # Check ssh server is installed.
   if ! which -s sshd; then
     echo ":: Please install ${WHITE}openssh-server${RESET} package and try again."
     return
   fi
+
   # Check firewall is installed.
   if ! which -s ufw; then
     echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
+
+  file="/etc/default/ufw"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  # Enable remote port forwarding.
+  sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' "${file}"
+
   file="/etc/ssh/sshd_config"
   # Back up file if its backup is missing.
   backup_file "${file}"
   # Enable remote port forwarding.
   sed -i "s/#GatewayPorts no/GatewayPorts yes/"              "${file}"
   sed -i "s/#AllowTcpForwarding yes/AllowTcpForwarding yes/" "${file}"
-  # Port 22222 is for setting up a reverse SSH tunnel.
-  # Ports 22000-22099 are for reverse SSH tunnels.
-  # Ports 33000-33099 are for reverse RDP tunnels.
-  ufw allow 22222/tcp > /dev/null
-  ufw allow 22000:22099/tcp > /dev/null
-  ufw allow 33000:33099/tcp > /dev/null
+
   file="/etc/ufw/before.rules"
   # Back up file if its backup is missing.
   backup_file "${file}"
@@ -360,17 +375,26 @@ cat << 'EOF' | sed "s/^  //" | sed -i "/${pattern}/e cat /dev/stdin" "${file}"
   # JUMP HOST CONFIGURATION TAIL
 EOF
   fi
-  file="/etc/default/ufw"
-  # Back up file if its backup is missing.
-  backup_file "${file}"
-  sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' "${file}"
+
   file="/etc/ufw/sysctl.conf"
   # Back up file if its backup is missing.
   backup_file "${file}"
+  # Enable remote port forwarding.
   sed -i 's|#net/ipv4/ip_forward=1|net/ipv4/ip_forward=1|' "${file}"
   sed -i 's|#net/ipv6/conf/default/forwarding=1|net/ipv6/conf/default/forwarding=1|' "${file}"
   sed -i 's|#net/ipv6/conf/all/forwarding=1|net/ipv6/conf/all/forwarding=1|' "${file}"
+
+  # Port 22222 is for setting up a reverse SSH tunnel.
+  # Ports 22000-22099 are for reverse SSH tunnels.
+  # Ports 33000-33099 are for reverse RDP tunnels.
+  ufw allow 22222/tcp > /dev/null
+  ufw allow 22000:22099/tcp > /dev/null
+  ufw allow 33000:33099/tcp > /dev/null
+
+  # Restart ssh server.
   systemctl restart ssh
+
+  # Restart firewall.
   systemctl restart ufw
 }
 
@@ -380,42 +404,63 @@ EOF
 # Returns:	None.
 revert_jumphost () {
   local file line lines pattern
-  # Check openssh server is installed.
-  if ! which -s sshd; then
-    return
-  fi
-  # Check firewall is installed.
-  if ! which -s ufw; then
-    return
-  fi
-  file="/etc/ssh/sshd_config"
-  # Back up file if its backup is missing.
-  backup_file "${file}"
-  # Disable remote port forwarding.
-  sed -i "s/GatewayPorts yes/#GatewayPorts no/"              "${file}"
-  sed -i "s/AllowTcpForwarding yes/#AllowTcpForwarding yes/" "${file}"
-  # Port 22222 is for setting up a reverse SSH tunnel.
-  # Ports 22000-22099 are for reverse SSH tunnels.
-  # Ports 33000-33099 are for reverse RDP tunnels.
-  ufw delete allow 22222/tcp > /dev/null
-  ufw delete allow 22000:22099/tcp > /dev/null
-  ufw delete allow 33000:33099/tcp > /dev/null
-  file="/etc/ufw/before.rules"
-  # Back up file if its backup is missing.
-  backup_file "${file}"
-  sed -i "/# JUMP HOST CONFIGURATION HEAD/,/# JUMP HOST CONFIGURATION TAIL/d" "${file}"
+
   file="/etc/default/ufw"
-  # Back up file if its backup is missing.
-  backup_file "${file}"
-  sed -i 's/DEFAULT_FORWARD_POLICY="ACCEPT"/DEFAULT_FORWARD_POLICY="DROP"/' "${file}"
+  if [ -f "${file}" ]; then
+    # Back up file if its backup is missing.
+    backup_file "${file}"
+    # Disable remote port forwarding.
+    sed -i 's/DEFAULT_FORWARD_POLICY="ACCEPT"/DEFAULT_FORWARD_POLICY="DROP"/' "${file}"
+  fi
+
+  file="/etc/ssh/sshd_config"
+  if [ -f "${file}" ]; then
+    # Back up file if its backup is missing.
+    backup_file "${file}"
+    # Disable remote port forwarding.
+    sed -i "s/GatewayPorts yes/#GatewayPorts no/"              "${file}"
+    sed -i "s/AllowTcpForwarding yes/#AllowTcpForwarding yes/" "${file}"
+  fi
+
+  file="/etc/ufw/before.rules"
+  if [ -f "${file}" ]; then
+    # Back up file if its backup is missing.
+    backup_file "${file}"
+    # Disable remote port forwarding.
+    sed -i "/# JUMP HOST CONFIGURATION HEAD/,/# JUMP HOST CONFIGURATION TAIL/d" "${file}"
+  fi
+
   file="/etc/ufw/sysctl.conf"
-  # Back up file if its backup is missing.
-  backup_file "${file}"
-  sed -i 's|net/ipv4/ip_forward=1|#net/ipv4/ip_forward=1|' "${file}"
-  sed -i 's|net/ipv6/conf/default/forwarding=1|#net/ipv6/conf/default/forwarding=1|' "${file}"
-  sed -i 's|net/ipv6/conf/all/forwarding=1|#net/ipv6/conf/all/forwarding=1|' "${file}"
-  systemctl restart ssh
-  systemctl restart ufw
+  if [ -f "${file}" ]; then
+    # Back up file if its backup is missing.
+    backup_file "${file}"
+    # Disable remote port forwarding.
+    sed -i 's|net/ipv4/ip_forward=1|#net/ipv4/ip_forward=1|' "${file}"
+    sed -i 's|net/ipv6/conf/default/forwarding=1|#net/ipv6/conf/default/forwarding=1|' "${file}"
+    sed -i 's|net/ipv6/conf/all/forwarding=1|#net/ipv6/conf/all/forwarding=1|' "${file}"
+  fi
+
+  # Check firewall is installed.
+  if which -s ufw; then
+    # Port 22222 is for setting up a reverse SSH tunnel.
+    # Ports 22000-22099 are for reverse SSH tunnels.
+    # Ports 33000-33099 are for reverse RDP tunnels.
+    ufw delete allow 22222/tcp > /dev/null
+    ufw delete allow 22000:22099/tcp > /dev/null
+    ufw delete allow 33000:33099/tcp > /dev/null
+  fi
+
+  # Check ssh server is installed.
+  if which -s sshd; then
+    # Restart ssh server.
+    systemctl restart ssh
+  fi
+
+  # Check firewall is installed.
+  if which -s ufw; then
+    # Restart firewall.
+    systemctl restart ufw
+  fi
 }
 
 ################################################################################
@@ -452,13 +497,16 @@ revert_openssh_server () {
 # Returns:	None.
 config_rsyslog () {
   local distro file
+
   # Check rsyslog is installed.
   if ! which -s rsyslogd; then
     echo ":: Please install ${WHITE}rsyslog${RESET} package and try again."
     return
   fi
+
   # Get distro edition.
   distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
+
   # Only do for Debian distro's. Skip for Ubuntu distro's.
   if echo "${distro}" | grep -Eiq "Bullseye|Bookworm|Trixie"; then
     file="/etc/systemd/journald.conf"
@@ -477,19 +525,26 @@ config_rsyslog () {
 # Returns:	None.
 revert_rsyslog () {
   local distro file
-  # Check rsyslog is installed.
-  if ! which -s rsyslogd; then
-    return
-  fi
+
   # Get distro edition.
   distro="$(grep "^VERSION=" /etc/os-release | sed -e "s/^.*(\(.*\))\"$/\1/")"
+
   # Only do for Debian distro's. Skip for Ubuntu distro's.
   if echo "${distro}" | grep -Eiq "Bullseye|Bookworm|Trixie"; then
     file="/etc/systemd/journald.conf"
-    sed -i "s/Storage=none/#Storage=auto/"              "${file}"
-    sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
-    systemctl restart rsyslog
-    systemctl restart systemd-journald
+    if [ -f "${file}" ]; then
+      sed -i "s/Storage=none/#Storage=auto/"              "${file}"
+      sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
+    else
+      echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
+      return 1
+    fi
+
+    # Check rsyslog is installed.
+    if which -s rsyslogd; then
+      systemctl restart rsyslog
+      systemctl restart systemd-journald
+    fi
   fi
 }
 
@@ -508,15 +563,18 @@ revert_rsyslog () {
 # Returns:	None.
 config_sudo () {
   local file user users
+
   # Only do for Debian.
   if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
+
   # Check sudo is installed.
   if ! which -s sudo; then
     echo ":: Please install ${WHITE}sudo${RESET} package and try again."
     return
   fi
+
   file="/etc/sudoers"
   # Back up file if its backup is missing.
   backup_file "${file}"
@@ -529,8 +587,10 @@ config_sudo () {
       sed -i "/Defaults\tmail_badpass$/a Defaults\trootpw" "${file}"
     fi
   fi
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
     # Allow user account to use sudo.
@@ -554,19 +614,19 @@ config_sudo () {
 # Returns:	None.
 revert_sudo () {
   local file user users
+
   # Only do for Debian.
   if ! grep --ignore-case --no-messages --quiet "Debian" "/etc/issue.net"; then
     return
   fi
-  # Check sudo is installed.
-  if ! which -s sudo; then
-    return
-  fi
+
   file="/etc/sudoers"
   # Restore file from its backup if present.
   revert_file "${file}"
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
     # Disallow user account to use sudo.
@@ -594,17 +654,21 @@ revert_sudo () {
 # Returns:	None.
 config_ufw () {
   local file
+
   # Check firewall is installed.
   if ! which -s ufw; then
     echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
+
   file="/etc/default/ufw"
   # Back up file if its backup is missing.
   backup_file "${file}"
+
   file="/etc/ufw/sysctl.conf"
   # Back up file if its backup is missing.
   backup_file "${file}"
+
   # Enable uncomplicated firewall.
   ufw --force enable > /dev/null
   # Allow outgoing connections.
@@ -613,6 +677,7 @@ config_ufw () {
   ufw default deny incoming > /dev/null
   # Allow incoming SSH.
   ufw allow ssh > /dev/null
+
   # Restart uncomplicated firewall.
   systemctl restart ufw
 }
@@ -623,19 +688,22 @@ config_ufw () {
 # Returns:	None.
 revert_ufw () {
   local file
-  # Check firewall is installed.
-  if ! which -s ufw; then
-    return
-  fi
+
   file="/etc/default/ufw"
   # Restore file from its backup if present.
   revert_file "${file}"
+
   file="/etc/ufw/sysctl.conf"
   # Restore file from its backup if present.
   revert_file "${file}"
-  ufw disable > /dev/null
-  # Restart uncomplicated firewall.
-  systemctl restart ufw
+
+  # Check firewall is installed.
+  if which -s ufw; then
+    # Disable uncomplicated firewall.
+    ufw disable > /dev/null
+    # Restart uncomplicated firewall.
+    systemctl restart ufw
+  fi
 }
 
 ################################################################################
@@ -652,12 +720,14 @@ setup_vim () {
   local action file line lines
   action="$1"
   file="/etc/environment"
+
   lines="
     # Make vim syntax highlighting work for Windows Terminal.
     # Default terminal setting of xterm-256color does not work.
     TERM=xterm-color
   "
   lines="$(echo "${lines}" | sed -e "s/^ *//g" | grep --invert-match "^$")"
+
   if [ "${action}" = "config" ]; then
     echo "${lines}" | while read line; do
       append_line "${file}" "${line}"
@@ -679,18 +749,23 @@ setup_vim () {
 # Returns:	None.
 config_vim () {
   local file folder user users
+
   # Check vim is installed.
   if ! which -s vim; then
     echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
+
   # Configuration of /etc/environment file.
   setup_vim config
+
   # Add vim backup folder for root user.
   folder="/root/.vim/backup"
   mkdir -p "${folder}"
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+
   # Add vim backup folder for all local users.
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
@@ -699,6 +774,7 @@ config_vim () {
     chown "${user}:${user}" "/home/${user}/.vim"
     chown "${user}:${user}" "/home/${user}/.vim/backup"
   done
+
   # Add vim configuration file.
   file="/etc/vim/vimrc.local"
   # Apply single quotes around EOF to avoid interpreting variables.
@@ -787,6 +863,7 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   set directory=$HOME/.vim/backup//,/tmp//,.
   set undodir=$HOME/.vim/backup//,/tmp//,.
 EOF
+
   # Add PowerShell syntax highlighting.
   mkdir -p /etc/vim/ftdetect
   mkdir -p /etc/vim/ftplugin
@@ -810,20 +887,21 @@ EOF
 # Returns:	None.
 revert_vim () {
   local file folder user users
-  # Check vim is installed.
-  if ! which -s vim; then
-    return
-  fi
+
   # Configuration of /etc/environment file.
   setup_vim revert
+
+  # Remove vim backup folder for root user.
   remove_folder "/root/.vim/backup"
   folder="/root/.vim"
   # Check folder is empty.
   if [ ! "$(ls -A "${folder}")" ]; then
     rmdir "${folder}"
   fi
+
   # Get local user accounts.
   users="$(awk -F: '($3>=1000)&&($7!="/bin/false")&&($7!="/usr/sbin/nologin"){print $1}' /etc/passwd)"
+
   # Remove vim backup folder for all local users.
   # Do not double quote to allow globbing and word splitting.
   for user in ${users}; do
@@ -834,7 +912,10 @@ revert_vim () {
       rmdir "${folder}"
     fi
   done
+
+  # Remove vim configuration file.
   remove_file "/etc/vim/vimrc.local"
+
   # Remove PowerShell syntax highlighting.
   remove_folder "/etc/vim/ftdetect"
   remove_folder "/etc/vim/ftplugin"
