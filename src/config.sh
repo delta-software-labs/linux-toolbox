@@ -83,49 +83,49 @@ config_bash () {
   file="/etc/profile.d/ansi_colors.sh"
   # Apply single quotes around EOF to avoid interpreting variables.
 cat << 'EOF' | sed -e "s/^  //" > "${file}"
-  ESC="$(printf "\\033")"
+  ESCAPE="$(printf "\\033")"
 
-  RST="${ESC}[0m"
+  RESET="${ESCAPE}[0m"
 
-  BLK="${ESC}[0;30m"
-  MRN="${ESC}[0;31m"
-  GRN="${ESC}[0;32m"
-  OLV="${ESC}[0;33m"
-  NVY="${ESC}[0;34m"
-  PUR="${ESC}[0;35m"
-  TEL="${ESC}[0;36m"
-  SLV="${ESC}[0;37m"
-  GRY="${ESC}[1;30m"
-  RED="${ESC}[1;31m"
-  LME="${ESC}[1;32m"
-  YLW="${ESC}[1;33m"
-  BLU="${ESC}[1;34m"
-  MGT="${ESC}[1;35m"
-  CYN="${ESC}[1;36m"
-  WHT="${ESC}[1;37m"
+  BLACK="${ESCAPE}[0;30m"
+  MAROON="${ESCAPE}[0;31m"
+  GREEN="${ESCAPE}[0;32m"
+  OLIVE="${ESCAPE}[0;33m"
+  NAVY="${ESCAPE}[0;34m"
+  PURPLE="${ESCAPE}[0;35m"
+  TEAL="${ESCAPE}[0;36m"
+  SILVER="${ESCAPE}[0;37m"
+  GRAY="${ESCAPE}[1;30m"
+  RED="${ESCAPE}[1;31m"
+  LIME="${ESCAPE}[1;32m"
+  YELLOW="${ESCAPE}[1;33m"
+  BLUE="${ESCAPE}[1;34m"
+  MAGENTA="${ESCAPE}[1;35m"
+  CYAN="${ESCAPE}[1;36m"
+  WHITE="${ESCAPE}[1;37m"
 
-  BG_BLK="${ESC}[0;7;30;40m"
-  BG_MRN="${ESC}[0;7;31;40m"
-  BG_GRN="${ESC}[0;7;32;40m"
-  BG_OLV="${ESC}[0;7;33;40m"
-  BG_NVY="${ESC}[0;7;34;40m"
-  BG_PUR="${ESC}[0;7;35;40m"
-  BG_TEL="${ESC}[0;7;36;40m"
-  BG_SLV="${ESC}[0;7;37;40m"
-  BG_GRY="${ESC}[0;5;30;40m"
-  BG_RED="${ESC}[0;5;30;41m"
-  BG_LME="${ESC}[0;5;30;42m"
-  BG_YLW="${ESC}[0;5;30;43m"
-  BG_BLU="${ESC}[0;5;30;44m"
-  BG_MGT="${ESC}[0;5;30;45m"
-  BG_CYN="${ESC}[0;5;30;46m"
-  BG_WHT="${ESC}[0;5;30;47m"
+  BG_BLACK="${ESCAPE}[0;7;30;40m"
+  BG_MAROON="${ESCAPE}[0;7;31;40m"
+  BG_GREEN="${ESCAPE}[0;7;32;40m"
+  BG_OLIVE="${ESCAPE}[0;7;33;40m"
+  BG_NAVY="${ESCAPE}[0;7;34;40m"
+  BG_PURPLE="${ESCAPE}[0;7;35;40m"
+  BG_TEAL="${ESCAPE}[0;7;36;40m"
+  BG_SILVER="${ESCAPE}[0;7;37;40m"
+  BG_GRAY="${ESCAPE}[0;5;30;40m"
+  BG_RED="${ESCAPE}[0;5;30;41m"
+  BG_LIME="${ESCAPE}[0;5;30;42m"
+  BG_YELLOW="${ESCAPE}[0;5;30;43m"
+  BG_BLUE="${ESCAPE}[0;5;30;44m"
+  BG_MAGENTA="${ESCAPE}[0;5;30;45m"
+  BG_CYAN="${ESCAPE}[0;5;30;46m"
+  BG_WHITE="${ESCAPE}[0;5;30;47m"
 
-  export ESC RST
-  export BLK MRN GRN OLV NVY PUR TEL SLV
-  export GRY RED LME YLW BLU MGT CYN WHT
-  export BG_BLK BG_MRN BG_GRN BG_OLV BG_NVY BG_PUR BG_TEL BG_SLV
-  export BG_GRY BG_RED BG_LME BG_YLW BG_BLU BG_MGT BG_CYN BG_WHT
+  export ESCAPE RESET
+  export BLACK MAROON GREEN OLIVE NAVY PURPLE TEAL SILVER
+  export GRAY RED LIME YELLOW BLUE MAGENTA CYAN WHITE
+  export BG_BLACK BG_MAROON BG_GREEN BG_OLIVE BG_NAVY BG_PURPLE BG_TEAL BG_SILVER
+  export BG_GRAY BG_RED BG_LIME BG_YELLOW BG_BLUE BG_MAGENTA BG_CYAN BG_WHITE
 EOF
 
   # Add skeleton files.
@@ -353,7 +353,7 @@ setup_date () {
 config_editor () {
   # Check vim is installed.
   if ! which -s vim.basic; then
-    echo ":: Please install ${WHT}vim${RST} package and try again."
+    echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
 
@@ -385,13 +385,13 @@ config_jumphost () {
 
   # Check ssh server is installed.
   if ! which -s sshd; then
-    echo ":: Please install ${WHT}openssh-server${RST} package and try again."
+    echo ":: Please install ${WHITE}openssh-server${RESET} package and try again."
     return
   fi
 
   # Check firewall is installed.
   if ! which -s ufw; then
-    echo ":: Please install ${WHT}ufw${RST} package and try again."
+    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
 
@@ -550,7 +550,7 @@ config_rsyslog () {
 
   # Check rsyslog is installed.
   if ! which -s rsyslogd; then
-    echo ":: Please install ${WHT}rsyslog${RST} package and try again."
+    echo ":: Please install ${WHITE}rsyslog${RESET} package and try again."
     return
   fi
 
@@ -586,7 +586,7 @@ revert_rsyslog () {
       sed -i "s/Storage=none/#Storage=auto/"              "${file}"
       sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
     else
-      echo "${MGT}:: ${file} is missing, aborting...${RST}"
+      echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
       return 1
     fi
 
@@ -621,7 +621,7 @@ config_sudo () {
 
   # Check sudo is installed.
   if ! which -s sudo; then
-    echo ":: Please install ${WHT}sudo${RST} package and try again."
+    echo ":: Please install ${WHITE}sudo${RESET} package and try again."
     return
   fi
 
@@ -630,7 +630,7 @@ config_sudo () {
   backup_file "${file}"
   # Check root password has been set.
   if grep --quiet "^root:\*:" /etc/shadow; then
-    echo "${YLW}:: Skipped making sudo ask for root password, due to no root password set.${RST}"
+    echo "${YELLOW}:: Skipped making sudo ask for root password, due to no root password set.${RESET}"
   else
     # Make sudo ask for root password.
     if ! grep --ignore-case --quiet "Defaults[[:space:]]rootpw" "${file}"; then
@@ -707,7 +707,7 @@ config_ufw () {
 
   # Check firewall is installed.
   if ! which -s ufw; then
-    echo ":: Please install ${WHT}ufw${RST} package and try again."
+    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
     return
   fi
 
@@ -802,7 +802,7 @@ config_vim () {
 
   # Check vim is installed.
   if ! which -s vim; then
-    echo ":: Please install ${WHT}vim${RST} package and try again."
+    echo ":: Please install ${WHITE}vim${RESET} package and try again."
     return
   fi
 

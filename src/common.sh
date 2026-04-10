@@ -16,7 +16,7 @@ append_line () {
   line="$2"
 
   if [ ! -f "${file}" ]; then
-    echo "${MGT}:: ${file} is missing, aborting...${RST}"
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
     return 1
   fi
 
@@ -35,7 +35,7 @@ backup_file () {
   file="$1"
 
   if [ ! -f "${file}" ]; then
-    echo "${MGT}:: ${file} is missing, aborting...${RST}"
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
     return 1
   fi
 
@@ -78,7 +78,7 @@ remove_line () {
   line="$2"
 
   if [ ! -f "${file}" ]; then
-    echo "${MGT}:: ${file} is missing, aborting...${RST}"
+    echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
     return 1
   fi
 
@@ -104,7 +104,7 @@ revert_file () {
 # Returns:	Exit status 1 if no root privileges.
 test_root_privileges () {
   if [ "$(id -u)" -ne 0 ]; then
-    echo "${MGT}:: No root privileges, aborting...${RST}"
+    echo "${MAGENTA}:: No root privileges, aborting...${RESET}"
     return 1
   fi
 }
