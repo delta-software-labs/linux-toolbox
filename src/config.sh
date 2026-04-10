@@ -79,6 +79,55 @@ setup_apt () {
 config_bash () {
   local file user users
 
+  # Add ansi color variables.
+  file="/etc/profile.d/ansi_colors.sh"
+  # Apply single quotes around EOF to avoid interpreting variables.
+cat << 'EOF' | sed -e "s/^  //" > "${file}"
+  ESC="$(printf "\\033")"
+
+  RST="${ESCAPE}[0m"
+
+  BLK="${ESCAPE}[0;30m"
+  MRN="${ESCAPE}[0;31m"
+  GRN="${ESCAPE}[0;32m"
+  OLV="${ESCAPE}[0;33m"
+  NVY="${ESCAPE}[0;34m"
+  PUR="${ESCAPE}[0;35m"
+  TEL="${ESCAPE}[0;36m"
+  SLV="${ESCAPE}[0;37m"
+  GRY="${ESCAPE}[1;30m"
+  RED="${ESCAPE}[1;31m"
+  LME="${ESCAPE}[1;32m"
+  YLW="${ESCAPE}[1;33m"
+  BLU="${ESCAPE}[1;34m"
+  MGT="${ESCAPE}[1;35m"
+  CYN="${ESCAPE}[1;36m"
+  WHT="${ESCAPE}[1;37m"
+
+  BG_BLK="${ESCAPE}[0;7;30;40m"
+  BG_MRN="${ESCAPE}[0;7;31;40m"
+  BG_GRN="${ESCAPE}[0;7;32;40m"
+  BG_OLV="${ESCAPE}[0;7;33;40m"
+  BG_NVY="${ESCAPE}[0;7;34;40m"
+  BG_PUR="${ESCAPE}[0;7;35;40m"
+  BG_TEL="${ESCAPE}[0;7;36;40m"
+  BG_SLV="${ESCAPE}[0;7;37;40m"
+  BG_GRY="${ESCAPE}[0;5;30;40m"
+  BG_RED="${ESCAPE}[0;5;30;41m"
+  BG_LME="${ESCAPE}[0;5;30;42m"
+  BG_YLW="${ESCAPE}[0;5;30;43m"
+  BG_BLU="${ESCAPE}[0;5;30;44m"
+  BG_MGT="${ESCAPE}[0;5;30;45m"
+  BG_CYN="${ESCAPE}[0;5;30;46m"
+  BG_WHT="${ESCAPE}[0;5;30;47m"
+
+  export ESC RST
+  export BLK MRN GRN OLV NVY PUR TEL SLV
+  export GRY RED LME YLW BLU MGT CYN WHT
+  export BG_BLK BG_MRN BG_GRN BG_OLV BG_NVY BG_PUR BG_TEL BG_SLV
+  export BG_GRY BG_RED BG_LME BG_YLW BG_BLU BG_MGT BG_CYN BG_WHT
+EOF
+
   # Add skeleton files.
   file="/etc/skel/.bash_aliases"
   # Apply single quotes around EOF to avoid interpreting variables.
@@ -202,6 +251,7 @@ EOF
 revert_bash () {
   local user users
 
+  remove_file "/etc/profile.d/ansi_colors.sh"
   remove_file "/etc/skel/.bash_aliases"
   remove_file "/etc/skel/.bashrc_aliases"
   remove_file "/root/.bash_aliases"
@@ -303,7 +353,7 @@ setup_date () {
 config_editor () {
   # Check vim is installed.
   if ! which -s vim.basic; then
-    echo ":: Please install ${WHITE}vim${RESET} package and try again."
+    echo ":: Please install ${WHT}vim${RST} package and try again."
     return
   fi
 
@@ -335,13 +385,13 @@ config_jumphost () {
 
   # Check ssh server is installed.
   if ! which -s sshd; then
-    echo ":: Please install ${WHITE}openssh-server${RESET} package and try again."
+    echo ":: Please install ${WHT}openssh-server${RST} package and try again."
     return
   fi
 
   # Check firewall is installed.
   if ! which -s ufw; then
-    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
+    echo ":: Please install ${WHT}ufw${RST} package and try again."
     return
   fi
 
@@ -500,7 +550,7 @@ config_rsyslog () {
 
   # Check rsyslog is installed.
   if ! which -s rsyslogd; then
-    echo ":: Please install ${WHITE}rsyslog${RESET} package and try again."
+    echo ":: Please install ${WHT}rsyslog${RST} package and try again."
     return
   fi
 
@@ -536,7 +586,7 @@ revert_rsyslog () {
       sed -i "s/Storage=none/#Storage=auto/"              "${file}"
       sed -i "s/ForwardToSyslog=yes/#ForwardToSyslog=no/" "${file}"
     else
-      echo "${MAGENTA}:: ${file} is missing, aborting...${RESET}"
+      echo "${MGT}:: ${file} is missing, aborting...${RST}"
       return 1
     fi
 
@@ -571,7 +621,7 @@ config_sudo () {
 
   # Check sudo is installed.
   if ! which -s sudo; then
-    echo ":: Please install ${WHITE}sudo${RESET} package and try again."
+    echo ":: Please install ${WHT}sudo${RST} package and try again."
     return
   fi
 
@@ -580,7 +630,7 @@ config_sudo () {
   backup_file "${file}"
   # Check root password has been set.
   if grep --quiet "^root:\*:" /etc/shadow; then
-    echo "${YELLOW}:: Skipped making sudo ask for root password, due to no root password set.${RESET}"
+    echo "${YLW}:: Skipped making sudo ask for root password, due to no root password set.${RST}"
   else
     # Make sudo ask for root password.
     if ! grep --ignore-case --quiet "Defaults[[:space:]]rootpw" "${file}"; then
@@ -657,7 +707,7 @@ config_ufw () {
 
   # Check firewall is installed.
   if ! which -s ufw; then
-    echo ":: Please install ${WHITE}ufw${RESET} package and try again."
+    echo ":: Please install ${WHT}ufw${RST} package and try again."
     return
   fi
 
@@ -752,7 +802,7 @@ config_vim () {
 
   # Check vim is installed.
   if ! which -s vim; then
-    echo ":: Please install ${WHITE}vim${RESET} package and try again."
+    echo ":: Please install ${WHT}vim${RST} package and try again."
     return
   fi
 
@@ -922,13 +972,4 @@ revert_vim () {
   remove_folder "/etc/vim/indent"
   remove_folder "/etc/vim/syntax"
 }
-
-################################################################################
-#									       #
-#				MAIN					       #
-#									       #
-################################################################################
-
-# Exit immediately for any failed (non-zero exit code) untested commands.
-set -e
 

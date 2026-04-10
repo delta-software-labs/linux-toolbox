@@ -1,9 +1,7 @@
 #!/usr/bin/make -f
 
-include src/_colors.mk
-
 check:
-	@echo ":: Checking $(WHITE)FOO$(RESET) directory."
-	@echo ":: Checking $(BG_YELLOW)FOO$(RESET) directory."
-	@echo ":: Checking $(BG_YELLOW)$(CYAN)FOO$(RESET) directory."
+	@echo ":: Checking $(WHT)FOO$(RST) directory."
+	@echo ":: Checking $(BG_YLW)FOO$(RST) directory."
+	@echo ":: Checking $(BG_YLW)$(CYN)FOO$(RST) directory."
 
