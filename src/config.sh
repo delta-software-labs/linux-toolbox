@@ -128,6 +128,8 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   export BG_GRAY BG_RED BG_LIME BG_YELLOW BG_BLUE BG_MAGENTA BG_CYAN BG_WHITE
 EOF
 
+  append_line "/etc/skel/.bashrc" "export LANG=en_US.UTF-8"
+
   # Add skeleton files.
   file="/etc/skel/.bash_aliases"
   # Apply single quotes around EOF to avoid interpreting variables.
@@ -174,6 +176,13 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   alias diff-i='diff -i'
   alias diff-w='diff -w'
   alias diff-iw='diff -i -w'
+  # Aliases for dig.
+  alias dig-dns='dig +noall +answer +dnssec dnskey'
+  alias dig-ds='dig +noall +answer ds'
+  alias dig-mx='dig +noall +answer mx'
+  alias dig-ns='dig +noall +answer ns'
+  alias dig-dnskey='dig +noall +answer dnskey'
+  alias dig-dnssec='dig +noall +answer +dnssec'
   # Aliases for git.
   alias git-diff='git difftool -x "/usr/bin/diff" -y'
   alias git-diff-c='git difftool -x "/usr/bin/diff --color" -y'
@@ -250,6 +259,8 @@ EOF
 # Returns:	None.
 revert_bash () {
   local user users
+
+  remove_line "/etc/skel/.bashrc" "export LANG=en_US.UTF-8"
 
   remove_file "/etc/profile.d/ansi_colors.sh"
   remove_file "/etc/skel/.bash_aliases"
@@ -441,8 +452,11 @@ EOF
   ufw allow 22000:22099/tcp > /dev/null
   ufw allow 33000:33099/tcp > /dev/null
 
-  # Restart ssh server.
-  systemctl restart ssh
+  # Test config syntax, to avoid locking yourself out.
+  if sshd -t; then
+    # Restart ssh server.
+    systemctl restart ssh
+  fi
 
   # Restart firewall.
   systemctl restart ufw
@@ -502,14 +516,67 @@ revert_jumphost () {
 
   # Check ssh server is installed.
   if which -s sshd; then
-    # Restart ssh server.
-    systemctl restart ssh
+    # Test config syntax, to avoid locking yourself out.
+    if sshd -t; then
+      # Restart ssh server.
+      systemctl restart ssh
+    fi
   fi
 
   # Check firewall is installed.
   if which -s ufw; then
     # Restart firewall.
     systemctl restart ufw
+  fi
+}
+
+################################################################################
+#									       #
+#				LOCALE					       #
+#									       #
+################################################################################
+
+# Function:	Configuration of the locale.
+# Parameters:	None.
+# Returns:	None.
+config_locale () {
+  local file
+  file="/etc/locale.conf"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  file="/etc/locale.gen"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  # Enable locale.
+  if ! grep -q "^en_US.UTF-8 UTF-8$" "${file}"; then
+    sed -i "s/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/" "${file}"
+    locale-gen
+  fi
+  file="/etc/default/locale"
+  # Back up file if its backup is missing.
+  backup_file "${file}"
+  update-locale LANG='"en_US.UTF-8"' LANGUAGE='"en_US:en"'
+}
+
+# Function:	Undo configuration of the locale.
+# Parameters:	None.
+# Returns:	None.
+revert_locale () {
+  local file
+  file="/etc/locale.conf"
+  # Restore original file.
+  if [ -f "${file}.org" ]; then
+    mv -f "${file}.org" "${file}"
+  fi
+  file="/etc/locale.gen"
+  # Restore original file.
+  if [ -f "${file}.org" ]; then
+    mv -f "${file}.org" "${file}"
+  fi
+  file="/etc/default/locale"
+  # Restore original file.
+  if [ -f "${file}.org" ]; then
+    mv -f "${file}.org" "${file}"
   fi
 }
 
@@ -891,6 +958,10 @@ cat << 'EOF' | sed -e "s/^  //" > "${file}"
   "set t_RV=
   " Prevent ^[[2;2R garbage characters or escape codes from showing.
   "set t_u7=
+
+  " Prevent following message by increasing redraw time to 10 seconds.
+  " 'redrawtime' exceeded, syntax highlighting disabled
+  set redrawtime=10000
 
   " set compatible
   set encoding=utf-8
